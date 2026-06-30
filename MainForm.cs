@@ -160,17 +160,51 @@ namespace PdfReader
         public float Zoom => _zoom;
         public event Action<int> PageChanged;
 
+        private bool _dragging;
+        private Point _dragStart;
+        private Point _dragScroll;
+
         public PdfScrollPanel()
         {
             AutoScroll = true;
             DoubleBuffered = true;
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
+            Cursor = Cursors.Hand;
             MouseWheel += (s, e) =>
             {
                 if ((ModifierKeys & Keys.Control) != 0)
                 {
                     ((HandledMouseEventArgs)e).Handled = true;
                     SetZoom(_zoom + Math.Sign(e.Delta) * 0.1f);
+                }
+            };
+            MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    _dragging = true;
+                    _dragStart = e.Location;
+                    _dragScroll = new Point(-AutoScrollPosition.X, -AutoScrollPosition.Y);
+                    Cursor = Cursors.SizeAll;
+                }
+            };
+            MouseMove += (s, e) =>
+            {
+                if (_dragging)
+                {
+                    int x = _dragScroll.X + _dragStart.X - e.X;
+                    int y = _dragScroll.Y + _dragStart.Y - e.Y;
+                    if (x < 0) x = 0;
+                    if (y < 0) y = 0;
+                    AutoScrollPosition = new Point(x, y);
+                }
+            };
+            MouseUp += (s, e) =>
+            {
+                if (_dragging)
+                {
+                    _dragging = false;
+                    Cursor = Cursors.Hand;
                 }
             };
         }
